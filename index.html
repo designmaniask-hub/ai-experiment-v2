@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<title>AI 아이디어 탐색 연구</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+:root{
+  --bg:#fff;--fg:#111;--sub:#666;--mute:#9a9a9a;--card:#f5f5f5;--line:#e6e6e6;
+  --accent:#111;--danger:#c62828;--ok:#2e7d32;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#ececec}
+body{font-family:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:var(--fg);-webkit-font-smoothing:antialiased;word-break:keep-all;overflow-wrap:anywhere}
+button,textarea,input{font-family:inherit}
+/* 모바일 확대 방지: 입력창 글자 16px 이상(iOS 자동 확대 기준), 더블탭 확대 차단 */
+html,body,button,textarea,input{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+textarea,input{font-size:16px !important}
+#app{max-width:430px;margin:0 auto;height:100vh;height:100dvh;background:var(--bg);display:flex;flex-direction:column;position:relative;overflow:hidden}
+
+/* 상단 바 */
+.top{flex:none;height:52px;display:flex;align-items:center;justify-content:center;position:relative;font-weight:600;font-size:16px}
+.top .side{position:absolute;right:16px;font-size:12px;color:var(--mute);font-weight:500}
+.progress{flex:none;height:2px;background:var(--line);margin:0 20px}
+.progress>i{display:block;height:100%;background:var(--fg);transition:width .3s}
+
+.body{flex:1;overflow-y:auto;padding:24px 20px;-webkit-overflow-scrolling:touch}
+.foot{flex:none;padding:12px 20px calc(14px + env(safe-area-inset-bottom));background:var(--bg)}
+
+h1{font-size:22px;line-height:1.4;font-weight:700;margin-bottom:8px;letter-spacing:-.01em}
+.lead{font-size:14px;color:var(--sub);line-height:1.6}
+.card{background:var(--card);border-radius:12px;padding:16px;margin-top:14px}
+.card .label{font-size:12px;color:var(--mute);margin-bottom:6px}
+.card p{font-size:14px;line-height:1.65;color:#333}
+.card ul{padding-left:18px}
+.card li{font-size:14px;line-height:1.65;color:#444;margin:2px 0}
+.check{display:flex;gap:10px;align-items:flex-start;margin-top:20px;padding-top:18px;border-top:1px solid var(--line);font-size:14px;line-height:1.5;cursor:pointer}
+.check input{width:18px;height:18px;margin-top:1px;accent-color:#111;flex:none}
+
+.btn{width:100%;height:52px;border:0;border-radius:10px;background:var(--accent);color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn:disabled{background:#d0d0d0;cursor:not-allowed}
+
+/* 선택형 문항 */
+.q{margin-top:26px}
+.q .qt{font-size:15px;font-weight:600;margin-bottom:10px}
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{border:1px solid var(--line);background:#fff;border-radius:999px;padding:9px 14px;font-size:14px;color:#333;cursor:pointer}
+.opt.on{background:var(--fg);border-color:var(--fg);color:#fff}
+
+/* 세션 안내 */
+.steps{margin-top:20px}
+.step{display:flex;gap:12px;align-items:center;padding:12px 0}
+.step+.step{border-top:1px solid var(--line)}
+.dot{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex:none;border:1.5px solid var(--line);color:var(--mute)}
+.step.done .dot{border-color:var(--ok);color:var(--ok)}
+.step.now .dot{background:var(--fg);border-color:var(--fg);color:#fff}
+.step .t{font-size:14px}
+.step .s{font-size:11px;color:var(--mute)}
+.step.now .t{font-weight:600}
+
+/* 채팅 */
+.chat{flex:1;overflow-y:auto;padding:12px 16px 8px;-webkit-overflow-scrolling:touch}
+.scn{background:var(--card);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.scn summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--mute)}
+.scn summary::-webkit-details-marker{display:none}
+.scn summary b{font-size:14px;color:var(--fg);font-weight:600;display:block;margin-top:2px}
+.scn summary .chev{transition:transform .2s;font-size:12px}
+.scn[open] summary .chev{transform:rotate(180deg)}
+.scn p{font-size:13.5px;line-height:1.65;color:#444;margin-top:10px}
+.empty{text-align:center;color:var(--mute);font-size:14px;line-height:1.6;padding:48px 12px}
+.empty b{display:block;color:var(--fg);font-size:17px;margin-bottom:6px}
+.mu{display:flex;justify-content:flex-end;margin:18px 0 6px}
+.mu span{background:var(--fg);color:#fff;padding:10px 14px;border-radius:18px 18px 4px 18px;max-width:84%;font-size:15px;line-height:1.55;white-space:pre-wrap}
+.ma{margin:14px 0 6px}
+.ma .who{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute);margin-bottom:6px}
+.ma .who i{width:18px;height:18px;border-radius:50%;background:var(--fg);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-style:normal;font-size:10px;font-weight:700}
+.ma .txt{font-size:15px;line-height:1.72;color:#222}
+.ma .txt p+p{margin-top:8px}
+.typing{display:inline-flex;gap:4px;padding:6px 0}
+.typing b{width:6px;height:6px;border-radius:50%;background:#bbb;animation:bl 1.2s infinite}
+.typing b:nth-child(2){animation-delay:.2s}.typing b:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.25}40%{opacity:1}}
+.fu{margin:12px 0 4px}
+.fu .ttl{font-size:12px;color:var(--mute);margin-bottom:8px}
+.fu button{display:flex;width:100%;text-align:left;align-items:center;justify-content:space-between;gap:10px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;font-size:14px;line-height:1.5;color:#222;cursor:pointer;transition:border-color .15s}
+.fu button:active{border-color:#999}
+.fu button:disabled{opacity:.45;cursor:default}
+.fu button .arr{color:#bbb;flex:none}
+.skel{height:46px;border-radius:10px;background:linear-gradient(90deg,#f3f3f3 25%,#e9e9e9 50%,#f3f3f3 75%);background-size:200% 100%;animation:sh 1.2s infinite;margin-bottom:8px}
+@keyframes sh{to{background-position:-200% 0}}
+.err{font-size:13px;color:var(--danger);margin:10px 0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.err button{border:1px solid var(--danger);color:var(--danger);background:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+
+.gate{flex:none;display:flex;align-items:center;gap:10px;padding:8px 16px;border-top:1px solid var(--line)}
+.gate .info{flex:1;font-size:12px;color:var(--sub);line-height:1.4}
+.gate .info b{color:var(--fg)}
+.gate .btn{width:auto;height:38px;padding:0 14px;font-size:14px;border-radius:8px}
+.composer{flex:none;display:flex;gap:8px;align-items:flex-end;padding:8px 12px calc(10px + env(safe-area-inset-bottom))}
+.composer textarea{flex:1;resize:none;border:1px solid var(--line);border-radius:22px;padding:10px 16px;font-size:15px;line-height:1.45;max-height:120px;outline:none;background:#fafafa}
+.composer textarea:focus{border-color:#bbb;background:#fff}
+.composer textarea:disabled{background:#f0f0f0}
+.send{width:42px;height:42px;border-radius:50%;border:0;background:var(--fg);color:#fff;cursor:pointer;flex:none;display:flex;align-items:center;justify-content:center}
+.send:disabled{background:#d0d0d0}
+
+/* 아이디어 / 평가 */
+.idea{width:100%;min-height:240px;border:1px solid var(--line);border-radius:12px;padding:14px;font-size:15px;line-height:1.6;resize:vertical;outline:none;margin-top:18px}
+.idea:focus{border-color:#999}
+.cnt{text-align:right;font-size:12px;color:var(--mute);margin-top:6px}
+.item{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}
+.item .it{font-size:14px;line-height:1.55;margin-bottom:10px}
+.lk{display:flex;gap:6px}
+.lk button{flex:1;height:40px;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:15px;cursor:pointer}
+.lk button.on{background:var(--fg);color:#fff;border-color:var(--fg)}
+.lkl{display:flex;justify-content:space-between;font-size:11px;color:var(--mute);margin-top:6px}
+
+.banner{flex:none;background:#fff4e5;color:#8a5300;font-size:12px;line-height:1.5;padding:8px 16px}
+.toast{position:absolute;left:50%;bottom:120px;transform:translateX(-50%);background:rgba(17,17,17,.92);color:#fff;font-size:13px;padding:10px 16px;border-radius:8px;max-width:86%;text-align:center;z-index:9;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.on{opacity:1}
+.center{display:flex;flex-direction:column;justify-content:center;min-height:100%}
+.pid{display:inline-block;margin-top:14px;background:var(--card);border-radius:8px;padding:8px 14px;font-size:14px;font-weight:600;letter-spacing:.05em}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   설정 — 배포 전 여기만 수정
+   ═══════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  // Apps Script 웹 앱 URL. 비워두거나 주소 끝에 ?demo=1 을 붙이면 '데모 모드'(예시 응답, 크레딧·기록 없음)로 동작
+  API_URL: 'https://script.google.com/macros/s/AKfycbxbMxvwmYpAM1bfrw-bCchZryjhOfoB1Xw6QvBhq0htViWB8Xog_we4G9hBR9hKab8saQ/exec',
+  MIN_FOLLOWUP_CLICKS: 2,   // 세션마다 후속질문을 최소 몇 번 눌러야 아이디어 작성 가능 (조작 노출 기준)
+  MAX_TURNS: 5,             // 세션당 최대 질문 횟수 (소요시간·비용 통제)
+  SESSIONS: 4,              // 발산 강도 1~4단계 = 세션 4회
+  MIN_IDEA_CHARS: 30,       // 아이디어 최소 글자 수
+  TIMEOUT_MS: 45000,        // AI 응답 대기 제한(ms). 넘으면 오류 안내 후 다시 시도 가능
+  RESEARCHER: '홍익대학교 시각디자인과 박사과정 이승규',
+  EMAIL: 'designfolio.sk@gmail.com'
+};
+
+/* 과제 (서버가 연결되면 서버 값으로 대체됨)
+   조절변인: 문제 구조화 수준 — 주제는 '카페'로 통일하고 목표·제약·성공 기준의 유무만 다르게 제시
+   structured   = 구조화 (목표·제약·성공 기준 명시)
+   unstructured = 비구조화 (목표만 열어둠, 제약·성공 기준 없음)
+   ※ 화면 제목에는 '구조화/비구조화' 표현을 쓰지 않음 (참가자에게 조건 노출 방지) */
+const TASKS = {
+  structured:{id:'structured',title:'카페 매출 올리기',scenario:'당신은 대학가에 있는 10평 규모 카페의 사장입니다. 개업 2년째인 이 카페는 평일 오후 2시부터 5시까지 손님이 거의 없습니다. 예산 3천만 원 안에서, 6개월 동안 실행할 수 있는 방법으로 월매출을 지금보다 20% 올릴 아이디어가 필요합니다.',ideaPrompt:'어떤 방법으로 월매출을 올릴지 자유롭게 작성해주세요.'},
+  unstructured:{id:'unstructured',title:'카페에서 보내는 시간',scenario:'요즘 사람들은 카페에서 공부하고, 일하고, 친구를 만나고, 혼자 쉬기도 합니다. 카페라는 공간이 앞으로 사람들에게 어떤 의미가 될 수 있을지 생각해 보고, 사람들이 카페에서 보내는 시간을 더 의미 있게 만들 아이디어가 필요합니다.',ideaPrompt:'카페에서 보내는 시간을 어떻게 더 의미 있게 만들지 자유롭게 작성해주세요.'}
+};
+
+/* 인구통계 문항 */
+const DEMO_Q = [
+  {key:'gender',  t:'성별',            o:['여성','남성','응답하지 않음']},
+  {key:'age',     t:'연령대',          o:['20대','30대','40대','50대 이상']},
+  {key:'status',  t:'신분',            o:['대학생','대학원생','직장인','프리랜서','기타']},
+  {key:'aiFreq',  t:'생성형 AI 사용 빈도', o:['거의 매일','주 3회 이상','주 1~2회','월 몇 회 이하']},
+  {key:'creative',t:'창작·기획 관련 경험', o:['실무 경험','전공·교육 경험','취미 수준','없음']}
+];
+
+/* 사용자 창의적 경험 4대 요인 × 3문항 = 12문항 (초안 — 확정 문항으로 교체)
+   TE 사고 확장성 / CP 인지적 촉발성 / CU 창의적 유용성 / IA 상호작용 수용성
+   ※ 화면에는 세션마다 무작위 순서로 제시되고, 저장은 아래 고정 순서(code)로 기록됨 */
+const ITEMS = [
+  {code:'TE1', t:'AI의 후속질문은 처음에 생각하지 못했던 방향으로 생각을 넓혀주었다.'},
+  {code:'TE2', t:'AI의 후속질문 덕분에 문제를 여러 관점에서 바라보게 되었다.'},
+  {code:'TE3', t:'AI의 후속질문은 내 기존 생각의 범위를 넘어서게 해주었다.'},
+  {code:'CP1', t:'AI의 후속질문은 예상하지 못한 것이어서 생각을 자극했다.'},
+  {code:'CP2', t:'AI의 후속질문은 당연하게 여기던 전제를 다시 생각하게 했다.'},
+  {code:'CP3', t:'AI의 후속질문을 보고 새로운 생각이 문득 떠오른 순간이 있었다.'},
+  {code:'CU1', t:'AI의 후속질문은 실제로 아이디어를 만드는 데 도움이 되었다.'},
+  {code:'CU2', t:'이번 세션에서 작성한 아이디어는 새롭다고 생각한다.'},
+  {code:'CU3', t:'이번 세션에서 작성한 아이디어는 실현 가능성이 있다고 생각한다.'},
+  {code:'IA1', t:'AI의 후속질문은 이해하기 쉬웠다.'},
+  {code:'IA2', t:'AI의 후속질문은 내 질문의 맥락과 관련이 있다고 느꼈다.'},
+  {code:'IA3', t:'이런 방식의 후속질문을 실제 AI를 쓸 때도 활용하고 싶다.'}
+];
+
+/* 데모 모드 전용 예시 응답 (실제 배포 시 사용되지 않음) */
+const DEMO_FU = {
+  1:['타깃 고객층을 더 구체적으로 좁히려면 어떻게 해야 할까?','초기 비용을 항목별로 나누면 어떻게 될까?','비슷한 성공 사례를 몇 개 더 알려줄 수 있어?','이 방향의 가장 큰 리스크는 뭘까?','처음 3개월 동안 우선 해야 할 일은 뭐야?','장단점을 정리해줄 수 있어?'],
+  2:['이용자가 아니라 바로 옆 가게 주인의 시선에서 보면 어떨까?','10년 뒤 이 동네에 살 사람들의 입장에서는 무엇이 필요할까?','밤 11시에 지나가는 사람에게 이곳은 어떤 의미일까?','도서관 대출 시스템의 운영 방식을 접목한다면 어떤 모습일까?','야간 응급실의 분류(트리아지) 방식을 가져오면 어떻게 될까?','게임의 레벨업 시스템을 이용자 경험에 넣는다면?'],
+  3:['돈을 받는 게 아니라 오히려 이용자에게 대가를 준다면, 그것도 공간 없이 해야 한다면?','가장 중요한 핵심 요소를 완전히 빼고, 예산도 10분의 1이라면?','고객이 원하는 걸 절대 해주지 않는 방식으로, 하루 1시간만 운영한다면?','홍보를 일절 금지당한 상태에서 오히려 찾기 어렵게 만든다면?'],
+  4:['인류 멸망 하루 전, 마지막으로 남은 이 서비스는 어떤 가치를 줘야 할까?','전 세계 인구가 단 100명이라면 이건 어떤 모습이어야 할까?','중력이 사라진 도시라면 이 계획은 어떻게 바뀔까?','시간이 거꾸로 흐르는 세계라면 첫날은 어떤 모습일까?','이걸 1000년 동안 유지해야 한다면 무엇을 남겨야 할까?']
+};
+
+/* 균형 라틴방격 (서버와 동일) — 데모 모드 배정용 */
+const LEVEL_ORDERS = [[1,2,4,3],[2,3,1,4],[3,4,2,1],[4,1,3,2]];
+
+/* ═══════════════════════════════════════════════════════════════
+   상태
+   ═══════════════════════════════════════════════════════════════ */
+const S = {
+  demo: !CONFIG.API_URL || new URLSearchParams(location.search).has('demo'),
+  screen: 'consent',
+  consent: false,
+  demo_answers: {},
+  pid: null, taskId: null, task: null, order: [],
+  sIdx: 0,            // 0~3 현재 세션 순번
+  session: null,
+  startedAt: null,
+  ideaText: '',
+  ratings: []
+};
+const app = document.getElementById('app');
+const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
+
+/* ═══════════════════════════════════════════════════════════════
+   유틸
+   ═══════════════════════════════════════════════════════════════ */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function md(s){
+  // 가벼운 렌더링: 굵게, 줄바꿈, 문단
+  return esc(s).split(/\n{2,}/).map(p => '<p>' + p.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/\n/g,'<br>') + '</p>').join('');
+}
+function toast(msg){
+  let t = document.querySelector('.toast');
+  if(!t){ t = document.createElement('div'); t.className='toast'; app.appendChild(t); }
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove('on'), 2600);
+}
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+
+async function api(action, payload = {}, retries = 1){
+  if(S.demo) return demoApi(action, payload);
+  let lastErr;
+  for(let i=0;i<=retries;i++){
+    try{
+      // 응답이 오지 않으면 무한 대기하지 않도록 제한 시간 설정
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), CONFIG.TIMEOUT_MS);
+      let r;
+      try{
+        r = await fetch(CONFIG.API_URL, {
+          method:'POST',
+          headers:{'Content-Type':'text/plain;charset=utf-8'}, // CORS 사전요청 회피
+          body: JSON.stringify({action, ...payload}),
+          signal: ctrl.signal
+        });
+      } finally { clearTimeout(timer); }
+      const j = await r.json();
+      if(!j.ok) throw new Error(j.error || '서버 오류');
+      return j;
+    }catch(e){ lastErr = e; if(i<retries) await sleep(900*(i+1)); }
+  }
+  throw lastErr;
+}
+
+async function demoApi(action, p){
+  console.log('[데모]', action, p);
+  if(action==='register'){
+    const idx = Math.floor(Math.random()*8);
+    const taskId = ['structured','unstructured'][idx%2];
+    return {ok:true, pid:'DEMO', taskId, task:TASKS[taskId], order:LEVEL_ORDERS[Math.floor(idx/2)%4]};
+  }
+  if(action==='chat'){
+    await sleep(900);
+    const q = p.messages[p.messages.length-1].content;
+    return {ok:true, answer:`(데모 응답) "${q.slice(0,40)}${q.length>40?'…':''}"에 대한 답변 예시입니다.\n\n실제 배포 시에는 이 자리에 AI가 생성한 답변이 표시됩니다. 답변은 모든 세션에서 같은 방식으로 생성되고, 세션마다 달라지는 것은 아래의 **후속질문**뿐입니다.\n\n• 첫 번째 핵심 포인트\n• 두 번째 핵심 포인트\n• 세 번째 핵심 포인트`};
+  }
+  if(action==='followups'){
+    await sleep(700);
+    return {ok:true, questions: shuffle(DEMO_FU[p.level]).slice(0,4)};
+  }
+  return {ok:true};
+}
+
+function warnLeave(e){ e.preventDefault(); e.returnValue=''; }
+
+/* ═══════════════════════════════════════════════════════════════
+   화면
+   ═══════════════════════════════════════════════════════════════ */
+function go(screen){ S.screen = screen; render(); }
+
+function render(){
+  // 같은 화면을 다시 그릴 때(선택지 클릭 등) 스크롤 위치 유지
+  const keep = S._last === S.screen ? (document.querySelector('.body')?.scrollTop || 0) : 0;
+  SCREENS[S.screen]();
+  const b = document.querySelector('.body'); if(b) b.scrollTop = keep;
+  S._last = S.screen;
+}
+
+function frame({title, side='', progress=null, body, foot}){
+  app.innerHTML = `
+    ${S.demo ? '<div class="banner">데모 모드 — 실제 AI 대신 예시 응답으로 동작합니다. (크레딧 사용·데이터 기록 없음)</div>' : ''}
+    ${isKakao ? '<div class="banner">카카오톡 브라우저에서는 오류가 생길 수 있어요. 우측 상단 ⋮ → <b>다른 브라우저로 열기</b>를 권장합니다.</div>' : ''}
+    <div class="top">${esc(title)}<span class="side">${side}</span></div>
+    ${progress!==null ? `<div class="progress"><i style="width:${progress}%"></i></div>` : ''}
+    <div class="body">${body}</div>
+    ${foot ? `<div class="foot">${foot}</div>` : ''}`;
+}
+
+const SCREENS = {
+
+  /* 1. 연구 안내 및 동의 */
+  consent(){
+    frame({
+      title:'연구 안내 및 동의', progress:4,
+      body:`
+        <h1>AI 후속질문 방식에 따른<br>사용자 아이디어 경험 연구</h1>
+        <p class="lead">안녕하세요, 바쁘신 와중에 참여해주셔서 감사합니다.</p>
+        <div class="card"><div class="label">연구 소개</div>
+          <p>생성형 AI 채팅 앱에서 제시되는 후속질문의 방식이 사용자의 사고 확장과 아이디어 발상에 어떤 영향을 주는지 알아보기 위한 연구입니다.</p></div>
+        <div class="card"><div class="label">참여 안내</div><ul>
+          <li>주어진 상황에서 AI에게 자유롭게 질문하고, 후속질문을 확인한 뒤 아이디어를 구상합니다.</li>
+          <li>같은 상황으로 <b>총 4번</b>의 짧은 대화 세션을 진행하며, 약 15~20분 소요됩니다.</li>
+          <li>입력하신 질문은 답변 생성을 위해 AI로 전송되며, 대화·아이디어·응답은 연구 목적으로만 사용됩니다.</li>
+          <li>응답 내용은 연구 목적으로만 사용되며, 개인을 식별할 수 있는 정보는 수집하지 않습니다.</li>
+          <li>참여자는 언제든지 중단할 수 있습니다.</li></ul></div>
+        <div class="card"><div class="label">연구자</div><p>${esc(CONFIG.RESEARCHER)}<br>${esc(CONFIG.EMAIL)}</p></div>
+        <label class="check"><input type="checkbox" id="agree" ${S.consent?'checked':''}> 위 내용을 확인했으며 연구 참여에 동의합니다.</label>`,
+      foot:`<button class="btn" id="next" ${S.consent?'':'disabled'}>동의하고 시작하기</button>`
+    });
+    const agree = document.getElementById('agree'), next = document.getElementById('next');
+    agree.onchange = () => { S.consent = agree.checked; next.disabled = !agree.checked; };
+    next.onclick = () => go('demographics');
+  },
+
+  /* 2. 기본 정보 */
+  demographics(){
+    const a = S.demo_answers;
+    frame({
+      title:'기본 정보', progress:8,
+      body:`<h1>간단한 정보를 알려주세요</h1><p class="lead">통계 분석에만 사용됩니다.</p>
+        ${DEMO_Q.map(q=>`<div class="q"><div class="qt">${q.t}</div><div class="opts">
+          ${q.o.map(o=>`<button class="opt ${a[q.key]===o?'on':''}" data-k="${q.key}" data-v="${esc(o)}">${esc(o)}</button>`).join('')}
+        </div></div>`).join('')}`,
+      foot:`<button class="btn" id="next" ${DEMO_Q.every(q=>a[q.key])?'':'disabled'}>다음으로</button>`
+    });
+    app.querySelectorAll('.opt').forEach(b => b.onclick = () => { a[b.dataset.k] = b.dataset.v; render(); });
+    const next = document.getElementById('next');
+    next.onclick = async () => {
+      next.disabled = true; next.textContent = '배정 중…';
+      try{
+        const r = await api('register', {demographics:a, ua:navigator.userAgent}, 2);
+        S.pid = r.pid; S.taskId = r.taskId; S.task = r.task || TASKS[r.taskId]; S.order = r.order;
+        S.startedAt = Date.now();
+        window.addEventListener('beforeunload', warnLeave);
+        go('taskIntro');
+      }catch(e){
+        toast('연결에 실패했어요. 네트워크를 확인하고 다시 눌러주세요.');
+        next.disabled = false; next.textContent = '다음으로';
+      }
+    };
+  },
+
+  /* 3. 과제 안내 */
+  taskIntro(){
+    frame({
+      title:'상황 안내', progress:12,
+      body:`<h1>지금부터 이런 상황이라고<br>상상해주세요</h1>
+        <div class="card" style="background:#fff;border:1.5px solid var(--fg)">
+          <div class="label">당신의 상황</div>
+          <p style="font-size:16px;font-weight:700;margin-bottom:8px;color:var(--fg)">${esc(S.task.title)}</p>
+          <p>${esc(S.task.scenario)}</p></div>
+        <div class="card"><div class="label">진행 방법</div><ul>
+          <li>평소 AI 앱을 쓰듯, 이 상황에서 <b>궁금한 것을 자유롭게</b> 물어보세요.</li>
+          <li>AI 답변 아래에 <b>후속질문</b>이 나타납니다. 눌러보거나, 직접 질문을 이어가도 됩니다.</li>
+          <li>충분히 탐색했다면 떠오른 아이디어를 작성하고, 짧은 평가에 응답합니다.</li>
+          <li>이 과정을 각각 다른 방식의 후속질문으로 <b>4번</b> 반복 진행합니다. 정답은 없습니다.</li></ul></div>`,
+      foot:`<button class="btn" id="next">시작하기</button>`
+    });
+    document.getElementById('next').onclick = () => go('sessionIntro');
+  },
+
+  /* 4. 세션 안내 */
+  sessionIntro(){
+    const n = S.sIdx, N = CONFIG.SESSIONS;
+    frame({
+      title:'세션 안내', progress:12 + n*21,
+      body:`<h1>${n===0?'첫 번째':n===N-1?'마지막':['','두 번째','세 번째'][n]} 대화를 시작합니다</h1>
+        <p class="lead">${n===0?'아래 순서대로 진행됩니다.':'새 대화창이 열립니다. 이전 대화는 이어지지 않아요.'}</p>
+        <div class="steps">${[...Array(N).keys()].map(i=>`
+          <div class="step ${i<n?'done':i===n?'now':''}"><div class="dot">${i<n?'✓':i+1}</div>
+          <div><div class="s">${i<n?'완료':i===n?'지금':'예정'}</div><div class="t">세션 ${i+1} — 대화 · 아이디어 · 평가</div></div></div>`).join('')}
+        </div>
+        ${n>0?`<div class="card"><div class="label">안내</div><p>같은 상황으로 진행되지만, 세션마다 AI의 후속질문 방식이 다를 수 있습니다. 앞에서 쓴 아이디어에 얽매이지 말고 새로 떠오르는 대로 자유롭게 탐색해주세요.</p></div>`:''}`,
+      foot:`<button class="btn" id="next">세션 ${n+1} 시작하기</button>`
+    });
+    document.getElementById('next').onclick = () => {
+      S.session = {no:n+1, level:S.order[n], messages:[], turns:0, clicks:0, fu:null,
+                   fuState:'idle', busy:false, chatErr:null, startedAt:Date.now(), ideaStart:null};
+      S.ideaText = ''; S.ratings = [];
+      S.itemOrder = shuffle([...ITEMS.keys()]);   // 세션마다 문항 제시 순서 무작위
+      go('chat');
+    };
+  },
+
+  /* 5. 대화 (핵심) */
+  chat(){
+    const s = S.session;
+    app.innerHTML = `
+      ${S.demo ? '<div class="banner">데모 모드 — 실제 AI 대신 예시 응답으로 동작합니다. (크레딧 사용·데이터 기록 없음)</div>' : ''}
+      <div class="top">세션 ${s.no} / ${CONFIG.SESSIONS}<span class="side" id="turnsLeft"></span></div>
+      <div class="chat" id="chat"></div>
+      <div class="gate" id="gate"></div>
+      <div class="composer">
+        <textarea id="inp" rows="1" placeholder="AI에게 물어보세요"></textarea>
+        <button class="send" id="send" aria-label="보내기">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </div>`;
+    const inp = document.getElementById('inp'), send = document.getElementById('send');
+    inp.oninput = () => { inp.style.height='auto'; inp.style.height=Math.min(inp.scrollHeight,120)+'px'; updateComposer(); };
+    inp.onkeydown = e => {
+      // 데스크톱 Enter 전송, Shift+Enter 줄바꿈 (모바일은 버튼으로 전송)
+      if(e.key==='Enter' && !e.shiftKey && !e.isComposing && window.matchMedia('(pointer:fine)').matches){ e.preventDefault(); send.click(); }
+    };
+    send.onclick = () => { const t = inp.value.trim(); if(!t) return; inp.value=''; inp.style.height='auto'; ask(t, 'typed'); };
+    updateChat();
+  },
+
+  /* 6. 아이디어 작성 */
+  idea(){
+    const s = S.session;
+    if(!s.ideaStart) s.ideaStart = Date.now();
+    frame({
+      title:`세션 ${s.no} 아이디어 작성`, progress:12 + (S.sIdx)*21 + 9,
+      body:`<h1>아이디어 작성</h1>
+        <p class="lead">방금 AI와 나눈 대화를 참고해서, <b style="color:var(--fg)">${esc(S.task.ideaPrompt)}</b> 1~3문장으로 짧게 적어도 괜찮습니다.</p>
+        <textarea class="idea" id="idea" maxlength="1000" placeholder="떠오른 생각을 편하게 적어주세요.">${esc(S.ideaText)}</textarea>
+        <div class="cnt" id="cnt"></div>`,
+      foot:`<button class="btn" id="next">평가하기</button>`
+    });
+    const ta = document.getElementById('idea'), cnt = document.getElementById('cnt'), next = document.getElementById('next');
+    const upd = () => {
+      S.ideaText = ta.value; const n = ta.value.trim().length;
+      cnt.textContent = n < CONFIG.MIN_IDEA_CHARS ? `${n}/1000 · 최소 ${CONFIG.MIN_IDEA_CHARS}자` : `${n}/1000`;
+      next.disabled = n < CONFIG.MIN_IDEA_CHARS;
+    };
+    ta.oninput = upd; upd();
+    next.onclick = async () => {
+      next.disabled = true; next.textContent = '저장 중…';
+      try{
+        await api('idea', {pid:S.pid, session:s.no, level:s.level, taskId:S.taskId, idea:S.ideaText.trim(),
+          turns:s.turns, clicks:s.clicks,
+          chatSec:Math.round((s.ideaStart - s.startedAt)/1000), ideaSec:Math.round((Date.now()-s.ideaStart)/1000)}, 2);
+        go('rating');
+      }catch(e){ toast('저장에 실패했어요. 다시 눌러주세요.'); next.disabled=false; next.textContent='평가하기'; }
+    };
+  },
+
+  /* 7. 평가 (12문항, 세션마다 순서 무작위) */
+  rating(){
+    const s = S.session, r = S.ratings;
+    const done = r.filter(Boolean).length, total = ITEMS.length;
+    frame({
+      title:`세션 ${s.no} 평가`, side:`${done}/${total}`, progress:12 + (S.sIdx)*21 + 16,
+      body:`<h1>방금 세션은 어땠나요?</h1><p class="lead">각 문항에 1~5점으로 응답해주세요.</p>
+        ${S.itemOrder.map((i,pos)=>`<div class="item"><div class="it">${pos+1}. ${esc(ITEMS[i].t)}</div>
+          <div class="lk">${[1,2,3,4,5].map(v=>`<button class="${r[i]===v?'on':''}" data-i="${i}" data-v="${v}">${v}</button>`).join('')}</div>
+          <div class="lkl"><span>전혀 그렇지 않다</span><span>매우 그렇다</span></div></div>`).join('')}`,
+      foot:`<button class="btn" id="next" ${done===total?'':'disabled'}>${S.sIdx<CONFIG.SESSIONS-1?'다음 세션으로':'평가 완료'}</button>`
+    });
+    app.querySelectorAll('.lk button').forEach(b => b.onclick = () => { r[+b.dataset.i] = +b.dataset.v; render(); });
+    const next = document.getElementById('next');
+    next.onclick = async () => {
+      next.disabled = true; next.textContent = '저장 중…';
+      try{
+        await api('rating', {pid:S.pid, session:s.no, level:s.level, taskId:S.taskId, ratings:ITEMS.map((_,i)=>r[i]),
+          itemOrder:S.itemOrder.map(i=>ITEMS[i].code).join('-')}, 2);
+        if(S.sIdx < CONFIG.SESSIONS-1){ S.sIdx++; go('sessionIntro'); } else go('final');
+      }catch(e){ toast('저장에 실패했어요. 다시 눌러주세요.'); next.disabled=false; next.textContent=S.sIdx<CONFIG.SESSIONS-1?'다음 세션으로':'평가 완료'; }
+    };
+  },
+
+  /* 8. 마무리 의견 */
+  final(){
+    frame({
+      title:'마무리', progress:96,
+      body:`<h1>마지막으로 한 가지만요</h1>
+        <p class="lead">네 번의 세션에서 AI의 후속질문이 어떻게 느껴졌는지, 가장 기억에 남는 질문이나 아쉬웠던 점을 자유롭게 남겨주세요. (선택)</p>
+        <textarea class="idea" id="cm" maxlength="1000" placeholder="자유롭게 적어주세요." style="min-height:180px"></textarea>`,
+      foot:`<button class="btn" id="next">실험 완료하기</button>`
+    });
+    const next = document.getElementById('next');
+    next.onclick = async () => {
+      next.disabled = true; next.textContent = '저장 중…';
+      try{
+        await api('finish', {pid:S.pid, comment:document.getElementById('cm').value.trim(), totalSec:Math.round((Date.now()-S.startedAt)/1000)}, 2);
+        window.removeEventListener('beforeunload', warnLeave);
+        go('done');
+      }catch(e){ toast('저장에 실패했어요. 다시 눌러주세요.'); next.disabled=false; next.textContent='실험 완료하기'; }
+    };
+  },
+
+  /* 9. 완료 */
+  done(){
+    frame({
+      title:'참여 완료', progress:100,
+      body:`<div class="center" style="text-align:center">
+        <div style="font-size:40px;margin-bottom:12px">🙏</div>
+        <h1>모든 응답이 성공적으로<br>저장되었습니다</h1>
+        <p class="lead">이 창은 닫으셔도 됩니다.</p>
+        <p class="lead" style="margin-top:14px">소중한 시간을 내어 실험에 참여해 주셔서<br>진심으로 감사드립니다.</p>
+        <p style="margin-top:40px;font-size:12px;color:var(--mute);line-height:1.6">참여 번호 ${esc(S.pid)}<br>참여 철회를 원하시면 이 번호를 연구자에게 알려주세요.</p></div>`
+    });
+  }
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   대화 로직
+   ═══════════════════════════════════════════════════════════════ */
+async function ask(text, source, fuIndex){
+  const s = S.session;
+  if(s.busy || s.turns >= CONFIG.MAX_TURNS) return;
+  s.busy = true; s.chatErr = null; s.turns++;
+  if(source === 'followup') s.clicks++;
+  s.messages.push({role:'user', content:text, source});
+  const prevFu = s.fu, prevFuState = s.fuState;
+  s.fu = null; s.fuState = 'idle';
+  updateChat(true);
+  try{
+    const r = await api('chat', {pid:S.pid, session:s.no, level:s.level, taskId:S.taskId, turn:s.turns,
+      source, followupIndex:fuIndex, messages:s.messages.map(m=>({role:m.role, content:m.content}))});
+    s.messages.push({role:'assistant', content:r.answer});
+    s.busy = false;
+    updateChat(true);
+    loadFollowups();
+  }catch(e){
+    // 실패한 질문은 되돌리고 입력창에 복원
+    s.messages.pop(); s.turns--; if(source==='followup') s.clicks--;
+    s.fu = prevFu; s.fuState = prevFuState;   // 후속질문 목록 복원 → 다시 누를 수 있음
+    s.busy = false; s.chatErr = '답변이 지연되고 있어요. 같은 질문을 다시 보내거나 후속질문을 다시 눌러주세요.';
+    if(source === 'typed'){ const inp = document.getElementById('inp'); if(inp) inp.value = text; }
+    console.error(e);
+    updateChat(true);
+  }
+}
+
+async function loadFollowups(){
+  const s = S.session, turnAt = s.turns;
+  s.fuState = 'loading'; updateChat(true);
+  try{
+    const r = await api('followups', {pid:S.pid, session:s.no, level:s.level, taskId:S.taskId, turn:turnAt,
+      messages:s.messages.map(m=>({role:m.role, content:m.content}))});
+    if(S.session !== s || s.turns !== turnAt) return; // 그 사이 새 질문을 보낸 경우 무시
+    s.fu = r.questions; s.fuState = 'ready';
+  }catch(e){
+    if(S.session !== s || s.turns !== turnAt) return;
+    console.error(e); s.fuState = 'error';
+  }
+  updateChat(true);
+}
+
+function updateChat(scroll){
+  const s = S.session, chat = document.getElementById('chat');
+  if(!chat) return;
+  const hasMsg = s.messages.length > 0;
+  let h = `<details class="scn" ${hasMsg?'':'open'}>
+      <summary><span>당신의 상황<b>${esc(S.task.title)}</b></span><span class="chev">▼</span></summary>
+      <p>${esc(S.task.scenario)}</p></details>`;
+  if(!hasMsg) h += `<div class="empty"><b>무엇이든 물어보세요</b>이 상황에서 궁금한 것을<br>평소 AI에게 묻듯 자유롭게 입력해주세요.</div>`;
+  s.messages.forEach((m, i) => {
+    if(m.role === 'user') h += `<div class="mu"><span>${esc(m.content)}</span></div>`;
+    else h += `<div class="ma"><div class="who"><i>AI</i>AI</div><div class="txt">${md(m.content)}</div></div>`;
+  });
+  if(s.busy) h += `<div class="ma"><div class="who"><i>AI</i>AI</div><div class="typing"><b></b><b></b><b></b></div></div>`;
+  if(s.chatErr) h += `<div class="err">${esc(s.chatErr)}</div>`;
+  if(!s.busy && hasMsg && s.messages[s.messages.length-1].role === 'assistant'){
+    const left = CONFIG.MAX_TURNS - s.turns;
+    if(s.fuState === 'loading') h += `<div class="fu"><div class="ttl">후속질문</div>${'<div class="skel"></div>'.repeat(4)}</div>`;
+    else if(s.fuState === 'error') h += `<div class="err">후속질문을 불러오지 못했어요. <button id="retryFu">다시 불러오기</button></div>`;
+    else if(s.fuState === 'ready' && s.fu?.length) h += `<div class="fu"><div class="ttl">후속질문</div>
+      ${s.fu.map((q,i)=>`<button data-fu="${i}" ${left<=0?'disabled':''}><span>${esc(q)}</span><span class="arr">›</span></button>`).join('')}</div>`;
+  }
+  chat.innerHTML = h;
+  chat.querySelectorAll('[data-fu]').forEach(b => b.onclick = () => ask(s.fu[+b.dataset.fu], 'followup', +b.dataset.fu));
+  const rf = document.getElementById('retryFu'); if(rf) rf.onclick = loadFollowups;
+  if(scroll) requestAnimationFrame(() => {
+    // 새 답변의 시작 지점이 보이도록 스크롤
+    const lastA = [...chat.querySelectorAll('.ma')].pop();
+    if(lastA && s.fuState !== 'idle' && !s.busy) chat.scrollTop = Math.max(0, lastA.offsetTop - 60);
+    else chat.scrollTop = chat.scrollHeight;
+  });
+  updateGate(); updateComposer();
+}
+
+function updateGate(){
+  const s = S.session, gate = document.getElementById('gate');
+  const need = CONFIG.MIN_FOLLOWUP_CLICKS, left = CONFIG.MAX_TURNS - s.turns;
+  const ok = (s.clicks >= need || left <= 0) && !s.busy && s.turns > 0;
+  let info;
+  if(left <= 0) info = '이 세션의 질문 횟수를 모두 사용했어요.<br><b>아이디어를 작성해주세요.</b>';
+  else if(s.clicks >= need) info = '충분히 탐색했다면 <b>아이디어를 작성</b>해주세요.';
+  else info = `후속질문을 <b>${need - s.clicks}번</b> 더 눌러보면 아이디어를 작성할 수 있어요.`;
+  gate.innerHTML = `<div class="info">${info}</div><button class="btn" id="toIdea" ${ok?'':'disabled'}>아이디어 작성</button>`;
+  document.getElementById('toIdea').onclick = () => go('idea');
+  document.getElementById('turnsLeft').textContent = `남은 질문 ${left}회`;
+}
+
+function updateComposer(){
+  const s = S.session, inp = document.getElementById('inp'), send = document.getElementById('send');
+  if(!inp) return;
+  const left = CONFIG.MAX_TURNS - s.turns;
+  inp.disabled = left <= 0;
+  inp.placeholder = left <= 0 ? '질문 횟수를 모두 사용했어요' : 'AI에게 물어보세요';
+  send.disabled = s.busy || left <= 0 || !inp.value.trim();
+}
+
+render();
+</script>
+</body>
+</html>
