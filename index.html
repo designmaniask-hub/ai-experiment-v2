@@ -147,8 +147,8 @@ const CONFIG = {
    unstructured = 비구조화 (목표만 열어둠, 제약·성공 기준 없음)
    ※ 화면 제목에는 '구조화/비구조화' 표현을 쓰지 않음 (참가자에게 조건 노출 방지) */
 const TASKS = {
-  structured:{id:'structured',title:'카페 매출 올리기',scenario:'당신은 대학가에 있는 10평 규모 카페의 사장입니다. 개업 2년째인 이 카페는 평일 오후 2시부터 5시까지 손님이 거의 없습니다. 예산 3천만 원 안에서, 6개월 동안 실행할 수 있는 방법으로 월매출을 지금보다 20% 올릴 아이디어가 필요합니다.',ideaPrompt:'어떤 방법으로 월매출을 올릴지 자유롭게 작성해주세요.'},
-  unstructured:{id:'unstructured',title:'카페에서 보내는 시간',scenario:'요즘 사람들은 카페에서 공부하고, 일하고, 친구를 만나고, 혼자 쉬기도 합니다. 카페라는 공간이 앞으로 사람들에게 어떤 의미가 될 수 있을지 생각해 보고, 사람들이 카페에서 보내는 시간을 더 의미 있게 만들 아이디어가 필요합니다.',ideaPrompt:'카페에서 보내는 시간을 어떻게 더 의미 있게 만들지 자유롭게 작성해주세요.'}
+  structured:{id:'structured',title:'카페의 매출 올리기',scenario:'당신은 대학가에 있는 10평 규모 카페의 사장입니다. 개업 2년째인 이 카페는 평일 오후 2시부터 5시까지 손님이 거의 없습니다. 예산 3천만 원 안에서, 6개월 동안 실행할 수 있는 방법으로 월매출을 지금보다 20% 올릴 아이디어가 필요합니다.',ideaPrompt:'어떤 방법으로 월매출을 올릴지 자유롭게 작성해주세요.'},
+  unstructured:{id:'unstructured',title:'카페를 의미 있는 공간으로 만들기',scenario:'요즘 사람들은 카페에서 공부하고, 일하고, 친구를 만나고, 혼자 쉬기도 합니다. 카페라는 공간이 앞으로 사람들에게 어떤 의미가 될 수 있을지 생각해 보고, 사람들이 카페에서 보내는 시간을 더 의미 있게 만들 아이디어가 필요합니다.',ideaPrompt:'카페에서 보내는 시간을 어떻게 더 의미 있게 만들지 자유롭게 작성해주세요.'}
 };
 
 /* 인구통계 문항 */
@@ -178,6 +178,16 @@ const ITEMS = [
   {code:'IA3', t:'이런 방식의 후속질문을 실제 AI를 쓸 때도 활용하고 싶다.'}
 ];
 
+/* 과제 구조화 조작 확인 3문항 (26.11.04 지도교수 미팅에서 승인된 문구 그대로)
+   4개 세션을 모두 마친 직후 1회, 5점 척도로 응답 → completions 시트 MC1~MC3에 기록
+   MC1 목표 상태(Reitman, 1965) / MC2 제약(Reitman, 1965; Stacey & Eckert, 2010) / MC3 성공 기준(Jonassen, 1997)
+   ※ 화면에는 '조작 확인'·'구조화' 표현을 쓰지 않음 (조건 노출 방지) */
+const MC_ITEMS = [
+  {code:'MC1', t:'이 과제는 무엇을 이뤄야 하는지가 분명했다.'},
+  {code:'MC2', t:'이 과제는 지켜야 할 조건이 분명했다.'},
+  {code:'MC3', t:'이 과제는 좋은 아이디어인지 판단할 기준이 분명했다.'}
+];
+
 /* 데모 모드 전용 예시 응답 (실제 배포 시 사용되지 않음) */
 const DEMO_FU = {
   1:['타깃 고객층을 더 구체적으로 좁히려면 어떻게 해야 할까?','초기 비용을 항목별로 나누면 어떻게 될까?','비슷한 성공 사례를 몇 개 더 알려줄 수 있어?','이 방향의 가장 큰 리스크는 뭘까?','처음 3개월 동안 우선 해야 할 일은 뭐야?','장단점을 정리해줄 수 있어?'],
@@ -202,7 +212,8 @@ const S = {
   session: null,
   startedAt: null,
   ideaText: '',
-  ratings: []
+  ratings: [],
+  mc: []              // 조작 확인 3문항 응답 (MC1~MC3)
 };
 const app = document.getElementById('app');
 const isKakao = /KAKAOTALK/i.test(navigator.userAgent);
@@ -306,7 +317,7 @@ const SCREENS = {
           <p>생성형 AI 채팅 앱에서 제시되는 후속질문의 방식이 사용자의 사고 확장과 아이디어 발상에 어떤 영향을 주는지 알아보기 위한 연구입니다.</p></div>
         <div class="card"><div class="label">참여 안내</div><ul>
           <li>주어진 상황에서 AI에게 자유롭게 질문하고, 후속질문을 확인한 뒤 아이디어를 구상합니다.</li>
-          <li>같은 상황으로 <b>총 4번</b>의 짧은 대화 세션을 진행하며, 약 15~20분 소요됩니다.</li>
+          <li>같은 상황으로 <b>총 4번</b>의 짧은 대화 세션을 진행하며, 약 40~50분 소요됩니다.</li>
           <li>입력하신 질문은 답변 생성을 위해 AI로 전송되며, 대화·아이디어·응답은 연구 목적으로만 사용됩니다.</li>
           <li>응답 내용은 연구 목적으로만 사용되며, 개인을 식별할 수 있는 정보는 수집하지 않습니다.</li>
           <li>참여자는 언제든지 중단할 수 있습니다.</li></ul></div>
@@ -464,12 +475,31 @@ const SCREENS = {
       try{
         await api('rating', {pid:S.pid, session:s.no, level:s.level, taskId:S.taskId, ratings:ITEMS.map((_,i)=>r[i]),
           itemOrder:S.itemOrder.map(i=>ITEMS[i].code).join('-')}, 2);
-        if(S.sIdx < CONFIG.SESSIONS-1){ S.sIdx++; go('sessionIntro'); } else go('final');
+        if(S.sIdx < CONFIG.SESSIONS-1){ S.sIdx++; go('sessionIntro'); } else go('taskCheck');
       }catch(e){ toast('저장에 실패했어요. 다시 눌러주세요.'); next.disabled=false; next.textContent=S.sIdx<CONFIG.SESSIONS-1?'다음 세션으로':'평가 완료'; }
     };
   },
 
-  /* 8. 마무리 의견 */
+  /* 8. 과제에 대한 응답 (조작 확인 3문항, 4개 세션을 모두 마친 직후 1회) */
+  taskCheck(){
+    const m = S.mc, done = m.filter(Boolean).length, total = MC_ITEMS.length;
+    frame({
+      title:'과제에 대한 응답', side:`${done}/${total}`, progress:93,
+      body:`<h1>이번에 받은 과제는<br>어땠나요?</h1>
+        <p class="lead">네 번의 세션에서 다룬 아래 상황을 떠올리며, 각 문항에 1~5점으로 응답해주세요.</p>
+        <div class="card"><div class="label">당신의 상황</div>
+          <p style="font-weight:700;color:var(--fg);margin-bottom:6px">${esc(S.task.title)}</p>
+          <p>${esc(S.task.scenario)}</p></div>
+        ${MC_ITEMS.map((it,i)=>`<div class="item"><div class="it">${i+1}. ${esc(it.t)}</div>
+          <div class="lk">${[1,2,3,4,5].map(v=>`<button class="${m[i]===v?'on':''}" data-i="${i}" data-v="${v}">${v}</button>`).join('')}</div>
+          <div class="lkl"><span>전혀 그렇지 않다</span><span>매우 그렇다</span></div></div>`).join('')}`,
+      foot:`<button class="btn" id="next" ${done===total?'':'disabled'}>다음으로</button>`
+    });
+    app.querySelectorAll('.lk button').forEach(b => b.onclick = () => { m[+b.dataset.i] = +b.dataset.v; render(); });
+    document.getElementById('next').onclick = () => go('final');
+  },
+
+  /* 9. 마무리 의견 */
   final(){
     frame({
       title:'마무리', progress:96,
@@ -482,14 +512,15 @@ const SCREENS = {
     next.onclick = async () => {
       next.disabled = true; next.textContent = '저장 중…';
       try{
-        await api('finish', {pid:S.pid, comment:document.getElementById('cm').value.trim(), totalSec:Math.round((Date.now()-S.startedAt)/1000)}, 2);
+        await api('finish', {pid:S.pid, comment:document.getElementById('cm').value.trim(), totalSec:Math.round((Date.now()-S.startedAt)/1000),
+          mc:MC_ITEMS.map((_,i)=>S.mc[i])}, 2);
         window.removeEventListener('beforeunload', warnLeave);
         go('done');
       }catch(e){ toast('저장에 실패했어요. 다시 눌러주세요.'); next.disabled=false; next.textContent='실험 완료하기'; }
     };
   },
 
-  /* 9. 완료 */
+  /* 10. 완료 */
   done(){
     frame({
       title:'참여 완료', progress:100,
